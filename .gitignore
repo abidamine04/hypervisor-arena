@@ -1,0 +1,7 @@
+node_modules/
+data/
+.env
+.sites-runtime/
+.wrangler/
+dist/
+*.zip

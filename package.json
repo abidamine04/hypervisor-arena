@@ -1,0 +1,14 @@
+{
+  "name": "hypervisor-arena",
+  "version": "1.6.3",
+  "private": true,
+  "type": "module",
+  "description": "Multiplayer datacenter rescue race with admin controls and server-validated missions.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "build": "node --check server.mjs && node --check public/app.js && node --check public/shared.js && node --check public/effects.js && node --check lib/game.mjs && node --check lib/teams.mjs && node --check lib/challenges.mjs && node --check lib/timing.mjs && node --check lib/network.mjs",
+    "test": "node --test tests/*.test.mjs"
+  }
+}

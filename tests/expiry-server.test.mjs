@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {mkdtempSync,writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {once} from 'node:events';
+import {createHash} from 'node:crypto';
+import {MISSIONS} from '../lib/game.mjs';
+test('Server expires an overdue room and rejects saves, restarts and final checks',{timeout:10000},async()=>{const dir=mkdtempSync(join(tmpdir(),'arena-expiry-')),code='ABCDEF',token='expiry-player';writeFileSync(join(dir,'arena.json'),JSON.stringify({rooms:{[code]:{code,status:'running',mode:'solo',startedAt:Date.now()-61000,timeLimitMs:60000,pausedMs:0}},players:{p:{id:'p',room:code,name:'Test',stage:0,files:MISSIONS[0].files,tokenHash:createHash('sha256').update(token).digest('hex')}},teams:{}}));const child=spawn(process.execPath,['server.mjs'],{cwd:new URL('../',import.meta.url),env:{...process.env,DATA_DIR:dir,PORT:'0',HOST:'127.0.0.1',ADMIN_PASSWORD:'test'},stdio:['ignore','pipe','pipe']});try{let out='';const port=await new Promise((resolve,reject)=>{child.stdout.on('data',b=>{out+=b;const m=out.match(/LISTENING_PORT=(\d+)/);if(m)resolve(m[1]);});child.on('error',reject);});const base='http://127.0.0.1:'+port;let r=await fetch(base+'/api/state?code='+code);const s=await r.json();assert.equal(s.room.status,'ended');assert.equal(s.room.expired,true);assert.equal(s.room.remainingMs,0);assert.equal(s.room.elapsedMs,60000);for(const path of ['/api/files','/api/validate','/api/network']){r=await fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json',Cookie:'arena_player='+token},body:JSON.stringify({code,stage:0,files:MISSIONS[0].files,action:'check'})});assert.equal(r.status,409,path);}}finally{child.kill();await once(child,'exit');}});
